@@ -1,6 +1,6 @@
 # 🐳 **DOCKER TRAINING — DAY 3**
 
-## Topic: Dockerizing Real Applications (React Frontend + Python Backend)
+## Topic: Dockerizing Real Applications (React Frontend)
 
 ---
 
