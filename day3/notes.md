@@ -227,7 +227,7 @@ Dockerfile
 ## React Dockerfile (Single Stage – Beginner Friendly)
 
 ```Dockerfile
-FROM node:18-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm config set registry https://registry.npmjs.org/ \
