@@ -8,6 +8,9 @@ uvicorn main:app --reload
 
 #how to login to a container
 
+```bash
+docker exec -it <container-name/id> bin/bash or -- sh
+```
 
 
 
