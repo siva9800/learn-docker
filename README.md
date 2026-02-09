@@ -1,4 +1,4 @@
-### Learn Docker
+# Learn Docker
 ---
 
 ## **Day 1 — Foundations: Why Containers Exist**
