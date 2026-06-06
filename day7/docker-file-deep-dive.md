@@ -1,383 +1,251 @@
-Below are **complete detailed notes on Dockerfile** — structured so students understand *what each instruction does, when it runs, and why we use it.*
+# Docker - Day 7: Dockerfile Deep Dive
+
+> **Goal of today:** master every important Dockerfile instruction - what it does, *when* it runs (build vs runtime), and how to write efficient, secure images.
+
+> **Open while you read:** [Image Layers & Caching - interactive](../animations/image-layers.html) to *see* how layers are built and cached.
 
 ---
 
-# 🐳 Dockerfile — Complete Detailed Notes
+## Objective of Day 7
+By the end you'll be able to:
+- Explain how Docker builds an image **layer by layer**
+- Use all key instructions: `FROM, WORKDIR, COPY, RUN, CMD, ENTRYPOINT, EXPOSE, ENV, ARG, USER, VOLUME, LABEL, HEALTHCHECK, SHELL`
+- Tell **build-time** from **runtime** instructions
+- Apply best practices for size, speed, and security
 
 ---
 
-# 1️⃣ What is a Dockerfile?
+## 1 What is a Dockerfile?
 
-> A Dockerfile is a script containing instructions that Docker follows to build an image.
+> A **Dockerfile** is a script of instructions Docker follows to build an image.
 
-Flow:
-
-```
-Dockerfile → docker build → Docker Image → docker run → Container
-```
-
-So:
-
-* Dockerfile = recipe
-* Image = prepared software package
-* Container = running application
-
----
-
-# 2️⃣ How Docker Builds an Image (Important Concept)
-
-Docker executes instructions **line by line**.
-
-Each instruction creates a **layer**.
-
-```
-FROM python
-RUN apt install
-COPY code
-RUN pip install
-CMD start
+```mermaid
+flowchart LR
+    DF["Dockerfile<br/>(recipe)"] -->|docker build| IMG["Image<br/>(package)"] -->|docker run| CT["Container<br/>(running app)"]
 ```
 
-Every step = one layer
-Layers are cached → builds become faster
+---
+
+## 2 How Docker Builds an Image - Layers
+
+### Analogy
+Each instruction adds a **pancake to a stack**. Docker **caches** each pancake. Next build, unchanged pancakes are **reused** instead of re-cooked - that's why builds get fast.
+
+```dockerfile
+FROM python:3.11-slim     # layer 1
+WORKDIR /app              # layer 2
+COPY requirements.txt .   # layer 3
+RUN pip install -r requirements.txt  # layer 4 (slow)
+COPY . .                  # layer 5
+CMD ["python","app.py"]   # metadata
+```
+> See the layers: `docker history <image>`
+
+**Cache rule:** if a layer's inputs change, that layer **and every layer after it** rebuilds. So put **rarely-changing** steps (installing deps) *before* **frequently-changing** ones (copying source).
 
 ---
 
----
+## 3 The Instructions
 
-# 3️⃣ Dockerfile Instructions (All Important Ones)
-
----
-
-## 🔹 FROM — Base Image
-
-> Defines the starting OS/runtime
-
+### `FROM` - base image
+The starting point. Must be first (except an `ARG` before it). Multiple `FROM`s = multi-stage build (Day 8).
 ```dockerfile
 FROM python:3.11-slim
 ```
 
-Must be the **first instruction** (except ARG before it).
-
-You can use multiple FROM → multi-stage build.
-
----
-
-## 🔹 WORKDIR — Working Directory
-
-> Sets current directory inside container
-
+### `WORKDIR` - working directory
+Like `cd` inside the image; creates the dir if needed. All following commands run here.
 ```dockerfile
 WORKDIR /app
 ```
 
-Equivalent to `cd /app`
-
-All next commands run inside `/app`
-
----
-
-## 🔹 COPY — Copy Files
-
-> Copies files from host → image
-
+### `COPY` - copy files (build time)
+Copies from your machine into the image.
 ```dockerfile
-COPY . .
 COPY requirements.txt /app/
+COPY . .
 ```
+> Related: `ADD` can also fetch URLs and auto-extract tarballs - but **prefer `COPY`** (it's explicit and predictable).
 
-Runs during build time.
----
-
-## 🔹 RUN — Execute Command During Build
-
-> Used to install dependencies
-
+### `RUN` - execute at build time
+Used to install things; the result is baked into a layer.
 ```dockerfile
 RUN apt-get update && apt-get install -y curl
 RUN pip install -r requirements.txt
 ```
 
-Executed while building image
-Result saved in image layer
-
----
-
-## 🔹 CMD — Default Runtime Command
-
-> Runs when container starts
-
+### `CMD` - default runtime command
+Runs **when the container starts**. Can be overridden at `docker run`.
 ```dockerfile
 CMD ["python","app.py"]
 ```
 
-Can be overridden:
-
-```bash
-docker run image bash
-```
-
----
-
-## 🔹 ENTRYPOINT — Fixed Main Command
-
-> Makes container behave like an executable
-
+### `ENTRYPOINT` - fixed runtime command
+Makes the container behave like an executable. `CMD` then supplies default arguments.
 ```dockerfile
 ENTRYPOINT ["python"]
-CMD ["app.py"]
+CMD ["app.py"]        # → runs: python app.py
+# docker run image test.py → runs: python test.py
 ```
 
-Final command:
+#### CMD vs ENTRYPOINT
+| | CMD | ENTRYPOINT |
+|---|---|---|
+| Role | Default args | Main executable |
+| When you pass args to `docker run` | **Replaced** | **Appended** |
+> **Pattern:** `ENTRYPOINT` = the fixed program, `CMD` = its default arguments.
 
-```
-python app.py
-```
-
-If user passes argument:
-
-```
-docker run image test.py
-→ python test.py
-```
-
----
-
-### CMD vs ENTRYPOINT
-
-| Feature     | CMD          | ENTRYPOINT      |
-| ----------- | ------------ | --------------- |
-| Purpose     | default args | main executable |
-| Override    | replaced     | appended        |
-| Flexibility | high         | fixed behavior  |
-
-Rule:
-
-```
-ENTRYPOINT = fixed program
-CMD = default parameters
-```
-
----
-
-## 🔹 EXPOSE — Documentation Port
-
+### `EXPOSE` - document a port
 ```dockerfile
 EXPOSE 8000
 ```
+> This only *documents* the port - it does **not** publish it. You still need `-p 8000:8000` at `docker run`.
 
-Does NOT publish port
-Just indicates app listens on port
-
----
-
-## 🔹 ENV — Runtime Environment Variable
-
-> Available inside container
-
+### `ENV` - runtime environment variable
+Available while the container runs.
 ```dockerfile
 ENV PORT=8000
 ENV DB_HOST=database
 ```
 
-Accessible in app:
-
-```python
-os.getenv("PORT")
-```
-
----
-
-## 🔹 ARG — Build Time Variable
-
-> Used only while building image
-
+### `ARG` - build-time variable
+Only exists during the build, **not** in the running container.
 ```dockerfile
 ARG VERSION=3.11
 FROM python:${VERSION}
 ```
 
-Not available in running container.
+#### ARG vs ENV
+| | ARG | ENV |
+|---|---|---|
+| Available at build | | |
+| Available in running container | | |
+| Use for | version selection, build flags | app configuration |
 
----
+> **Never** pass secrets via `ARG` or `ENV` - they're visible in image history. Use BuildKit secrets or runtime secret mounts.
 
-### ARG vs ENV
-
-| Feature                | ARG               | ENV               |
-| ---------------------- | ----------------- | ----------------- |
-| Available in build     | Yes               | Yes               |
-| Available in container | No                | Yes               |
-| Use case               | version selection | app configuration |
-
----
-
-## 🔹 USER — Run as Non-Root
-
-Security best practice
-
+### `USER` - drop root (security!)
 ```dockerfile
 RUN adduser -S appuser
 USER appuser
 ```
+Running as non-root limits damage if the container is compromised.
 
-Prevents privilege escalation.
-
----
-
-## 🔹 VOLUME — Persistent Storage Location
-
+### `VOLUME` - declare a persistent path
 ```dockerfile
 VOLUME /data
 ```
+Marks a directory whose data should live outside the container lifecycle (see Day 4).
 
-Marks folder to store data outside container lifecycle.
-
----
-
-## 🔹 LABEL — Metadata
-
+### `LABEL` - metadata
 ```dockerfile
-LABEL version="1.0"
-LABEL maintainer="siva"
+LABEL version="1.0" maintainer="siva"
 ```
 
-Used for documentation & automation.
-
----
-
-## 🔹 HEALTHCHECK — Container Health Monitoring
-
+### `HEALTHCHECK` - is the app actually OK?
+Docker periodically runs this command and marks the container **healthy / unhealthy**.
 ```dockerfile
-HEALTHCHECK CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
 ```
+**Why it matters:** orchestrators (Compose, Kubernetes) use health status to wait for readiness, restart sick containers, and avoid routing traffic to a broken app. A container can be *running* but not *ready* - healthchecks tell the difference.
 
-Docker marks container healthy/unhealthy.
-
----
-
-## 🔹 SHELL — Change Default Shell
-
+### `SHELL` - change the default shell
 ```dockerfile
 SHELL ["/bin/bash","-c"]
 ```
 
-Used when scripts require bash features.
-
 ---
 
----
+## 4 Build-time vs Runtime (key table)
 
-# 4️⃣ Multi-Stage Dockerfile Concept
+| Instruction | When it runs |
+|---|---|
+| `FROM`, `RUN`, `COPY`, `ADD`, `ARG`, `WORKDIR` | Build time |
+| `CMD`, `ENTRYPOINT`, `ENV`, `EXPOSE`, `HEALTHCHECK` | Runtime (baked in, used when container runs) |
 
-Use multiple build stages:
-
-```dockerfile
-FROM node AS build
-RUN npm run build
-
-FROM nginx
-COPY --from=build /app/build /usr/share/nginx/html
+```mermaid
+flowchart LR
+    Build["docker build<br/>FROM·RUN·COPY·ARG"] --> Image["Image"]
+    Image --> Run["docker run<br/>CMD·ENTRYPOINT·ENV·HEALTHCHECK"]
 ```
 
-Benefits:
-
-* smaller image
-* better security
-* removes build tools
-
 ---
 
----
+## 5 Best Practices
 
-# 5️⃣ Dockerfile Best Practices
-
----
-
-## Layer Optimization
-
-Bad:
-
+### Combine RUN steps (fewer layers)
 ```dockerfile
+#  two layers, larger
 RUN apt update
-RUN apt install curl
+RUN apt install -y curl
+#  one layer
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 ```
 
-Good:
-
-```dockerfile
-RUN apt update && apt install -y curl
-```
-
----
-
-## Cache Optimization
-
-Copy dependencies first:
-
+### Order for cache wins
 ```dockerfile
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt   # cached unless deps change
+COPY . .                              # code changes don't bust the install
+```
+
+### Use minimal base images
+`python:3.11-slim`, `node:20-alpine`, `nginx:alpine` → smaller, fewer vulnerabilities.
+
+### Always add a `.dockerignore`
+Keep `node_modules`, `.git`, `.env`, logs out of the build context.
+
+### Run as non-root
+Add a `USER` in the final stage.
+
+---
+
+## Common Mistakes
+1. **`COPY . .` before installing deps** → cache busted on every code change.
+2. **Expecting `EXPOSE` to publish a port** - it doesn't; use `-p`.
+3. **Secrets in `ENV`/`ARG`** → leaked in image history.
+4. **Running as root** in production images.
+5. **One `RUN` per command** → bloated images.
+
+---
+
+## Quick Self-Check
+1. Why does instruction order affect build speed?
+2. CMD vs ENTRYPOINT - what happens to args you pass at `docker run`?
+3. ARG vs ENV - which is available in the running container?
+4. What does HEALTHCHECK enable that just "running" doesn't?
+5. Does `EXPOSE 8000` make the app reachable from your browser?
+
+---
+
+## Hands-On Lab
+```dockerfile
+# Dockerfile - try it on a small FastAPI/Flask app
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
+RUN adduser -S appuser && chown -R appuser /app
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=30s CMD curl -f http://localhost:8000/health || exit 1
+CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
 ```
-
-So dependency layer reused.
-
----
-
-## Use Minimal Base Images
-
-```
-python:slim
-node:alpine
-nginx:alpine
-```
-
-Reduces size & vulnerabilities.
-
----
-
-## Run as Non-Root
-
-Always add USER in final stage.
-
----
-
----
-
-# 6️⃣ Build vs Run Time
-
-| Instruction | When Executed |
-| ----------- | ------------- |
-| RUN         | build time    |
-| COPY        | build time    |
-| ARG         | build time    |
-| CMD         | runtime       |
-| ENTRYPOINT  | runtime       |
-| ENV         | runtime       |
-
----
-
----
-
-# 7️⃣ Dockerfile Execution Flow
-
-```
-docker build
-   ↓
-Docker reads instructions
-   ↓
-Creates layers
-   ↓
-Image ready
-   ↓
-docker run
-   ↓
-CMD/ENTRYPOINT executed
+```bash
+docker build -t myapi .
+docker history myapi          # inspect layers
+docker run -d -p 8000:8000 myapi
+docker ps                     # watch the STATUS show (healthy) after a bit
 ```
 
 ---
 
----
+## End of Day 7 Summary
+- Images build in cached layers (order matters)
+- Know every key instruction + build-time vs runtime
+- CMD vs ENTRYPOINT, ARG vs ENV
+- Healthchecks, non-root, minimal images
 
-
-
+Next up → [**Day 8: Multi-Stage Builds & Optimization**](../day8/multi-stage-docker-file.md)

@@ -1,137 +1,84 @@
-🐳 Multi-Stage Dockerfile — Detailed Notes
-1️⃣ What is a Multi-Stage Dockerfile?
+# Docker - Day 8: Multi-Stage Builds & Image Optimization
 
-A multi-stage Dockerfile uses multiple FROM instructions to separate the build environment and the runtime environment, and copies only the final required output into the final image.
+> **Goal of today:** build small, secure, production-ready images by separating the **build** environment from the **runtime** environment.
 
-Instead of shipping everything:
+---
 
-code + compilers + build tools + dependencies + runtime
+## Objective of Day 8
+By the end you'll be able to:
+- Explain why single-stage images get bloated and risky
+- Write **multi-stage** Dockerfiles
+- Copy only the final output into a tiny runtime image
+- Understand the size **and security** benefits
 
+---
 
-We ship only:
+## 1 The Problem: Bloated Single-Stage Images
 
-runtime + final application
+### Analogy
+Imagine building furniture in your living room and then **leaving all the power tools, sawdust, and packaging in the room forever**. That's a normal single-stage image - it ships your app *plus* every tool used to build it.
 
-2️⃣ Why Multi-Stage Build Exists (The Real Problem)
-
-Normal Dockerfile:
-
+```dockerfile
 FROM node:20
 WORKDIR /app
 COPY . .
 RUN npm install
 RUN npm run build
 CMD ["npm","start"]
+```
+This image contains: source code, `node_modules`, build tools, package manager, caches, dev dependencies → **large, slow, and a bigger attack surface.**
 
+But production only needs the **compiled app + a runtime**.
 
-This image contains:
+---
 
-source code
+## 2 The Solution: Build in one stage, run in another
 
-node_modules
+### Analogy
+Build the furniture in a **workshop**, then carry *only the finished table* into the clean dining room. Leave all the tools and mess behind in the workshop.
 
-build tools
+```mermaid
+flowchart LR
+    subgraph S1["Stage 1: builder (heavy)"]
+        Src["source + tools"] --> Build["compile / npm run build"]
+        Build --> Out["final output only"]
+    end
+    subgraph S2["Stage 2: runtime (tiny)"]
+        Base["minimal base (nginx/alpine)"]
+        Out -->|"COPY --from=builder"| Base
+    end
+    style S1 fill:#3a2f10,stroke:#d29922,color:#fff
+    style S2 fill:#13351f,stroke:#3fb950,color:#fff
+```
 
-package manager
+Only files you explicitly `COPY --from` cross over. The whole builder stage is **discarded** - its tools never ship.
 
-cache files
+---
 
-development dependencies
+## 3 Example - React (Node build → Nginx serve)
 
-Result:
-
-Large image
-Slow start
-Security risk
-Not production ready
-
-
-But production only needs:
-
-compiled application
-runtime
-
-
-So we separate build and run.
-
-3️⃣ Core Idea
-
-Build in one container → Run in another clean container
-
-4️⃣ Basic Structure
-# Stage 1 (builder)
-FROM node AS build
-RUN build application
-
-# Stage 2 (runtime)
-FROM nginx
-COPY --from=build /output /app
-
-
-Each FROM starts a new independent image.
-
-5️⃣ How Docker Executes Multi-Stage Build
-
-Step-by-step:
-
-Docker builds first stage (temporary image)
-
-Runs commands
-
-Produces build output
-
-Starts fresh new image
-
-Copies selected files
-
-Discards builder stage
-
-Important:
-
-Builder image is NOT shipped to production
-
-6️⃣ What Actually Gets Copied
-
-Only files you specify:
-
-COPY --from=build /app/dist /usr/share/nginx/html
-
-
-NOT copied:
-
-OS packages
-
-compilers
-
-cache
-
-temp files
-
-secrets
-
-So runtime image stays minimal.
-
-7️⃣ Example — React Application
-# Build stage
-FROM node:20 AS build
+```dockerfile
+# ---- Build stage ----
+FROM node:20-alpine AS build
 WORKDIR /app
-COPY . .
+COPY package*.json ./
 RUN npm install
+COPY . .
 RUN npm run build
 
-# Runtime stage
+# ---- Runtime stage ----
 FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx","-g","daemon off;"]
+```
+Final image = **nginx + static files only**. No Node, no npm, no source.
 
+---
 
-Final image contains:
+## 4 Example - Python (deps build → slim runtime)
 
-nginx + static files only
-
-
-No node, no npm.
-
-8️⃣ Example — Python Application
+```dockerfile
 FROM python:3.11 AS builder
 WORKDIR /app
 COPY requirements.txt .
@@ -141,163 +88,116 @@ FROM python:3.11-slim
 COPY --from=builder /install /usr/local
 COPY . .
 CMD ["python","app.py"]
+```
 
+## 5 Example - Java (JDK build → JRE run)
 
-Final image contains only runtime dependencies.
-
-9️⃣ Example — Java Application
+```dockerfile
 FROM maven AS build
 COPY . .
 RUN mvn package
 
-FROM openjdk:17-jre
+FROM eclipse-temurin:17-jre
 COPY --from=build target/app.jar app.jar
 CMD ["java","-jar","app.jar"]
+```
+Build with the heavy **JDK**, run with the light **JRE**.
 
+---
 
-Build with JDK → Run with JRE.
+## 6 Builder vs Runtime Stage
 
-🔟 Key Concept — Builder vs Runtime
-Builder Stage	Runtime Stage
-Temporary	Final image
-Heavy	Lightweight
-Has tools	Minimal tools
-Used to prepare app	Used to run app
-1️⃣1️⃣ Advantages of Multi-Stage Builds
-Smaller Images
+| Builder stage | Runtime stage |
+|---|---|
+| Temporary (discarded) | The final shipped image |
+| Heavy (compilers, tools) | Lightweight |
+| Prepares the app | Runs the app |
 
-Removes unnecessary files → faster pull and deploy
+---
 
-Improved Security
+## 7 Why This Matters
 
-Removes:
+### Smaller images
+Faster to push, pull, and start; cheaper to store; faster autoscaling.
 
-compilers
+### Better security (the big one)
+A runtime image with **no compilers, shells, or package managers** gives an attacker far less to work with.
 
-shells
+```mermaid
+flowchart LR
+    Single["Single-stage<br/>tools + source + app"] -->|"attacker can compile,<br/>read source, install malware"| Risk["big attack surface"]
+    Multi["Multi-stage<br/>app + runtime only"] -->|"few tools to abuse"| Safe["small attack surface"]
+    style Risk fill:#3a1c1c,stroke:#f85149,color:#fff
+    style Safe fill:#13351f,stroke:#3fb950,color:#fff
+```
 
-package managers
+### Also: cleaner environment, immutable infra, faster CI/CD (cached layers), and your **source code isn't shipped** (only compiled output).
 
-debug tools
+---
 
-Reduces attack surface.
-
-Faster Deployment
-
-Small images start faster and scale faster.
-
-Clean Environment
-
-No development tools in production.
-
-Immutable Infrastructure
-
-Containers cannot modify themselves easily.
-
-Better CI/CD Performance
-
-Cached build layers → faster builds.
-
-Protects Source Code
-
-Only compiled output copied.
-
-1️⃣2️⃣ Security Benefits Explained
-
-Without multi-stage attacker can:
-
-install malware
-compile exploits
-read source code
-modify app
-
-
-With multi-stage attacker only sees runtime.
-
-No tools → attack difficult.
-
-1️⃣3️⃣ Multi-Stage Build Patterns
-Build → Serve (Frontend)
-
-Node → Nginx
-
-Compile → Run (Backend)
-
-Maven → JRE
-
-Install → Execute (Python)
-
-Builder → Slim runtime
-
-Package → Deploy (Go)
-
-Go build → scratch image
-
-1️⃣4️⃣ Naming Stages
-FROM node AS builder
-FROM nginx AS runtime
-
-
-Used in copy:
-
-COPY --from=builder /app/build /usr/share/nginx/html
-
-
-Improves readability.
-
-1️⃣5️⃣ Using Multiple Builders
-
-You can chain multiple build stages:
-
+## 8 Naming & Chaining Stages
+```dockerfile
 FROM node AS deps
 FROM node AS build
 FROM nginx AS runtime
+COPY --from=build /app/build /usr/share/nginx/html
+```
+Use **names** (`AS build`), not numbers - readable and stable.
 
-1️⃣6️⃣ What Happens to Previous Stages?
+---
 
-They exist only during build.
+## 9 Key Rules
+1. Each `FROM` **resets the filesystem** - nothing carries over automatically.
+2. Only `COPY --from=<stage>` transfers files between stages.
+3. Only the **last stage** becomes the final image.
+4. Use a **minimal** runtime base (`alpine`, `slim`, `jre`, or `scratch`).
+5. Add a `USER` (non-root) in the final stage.
+6. Always pair with a **`.dockerignore`**.
 
-After image is built:
+---
 
-only last stage survives
+## Best Practices & When NOT to Use
 
-1️⃣7️⃣ Important Rules
+**Do:** minimal runtime base, copy only needed output, named stages, non-root user.
+**Avoid:** running the app in the builder stage, copying the whole project, full-OS runtime, forgetting `.dockerignore`.
 
-Each FROM resets filesystem
+**When you may not need it:** a single static file or trivial script - multi-stage shines when there's a real *build/compile* step.
 
-Nothing carries automatically
+---
 
-Only COPY --from transfers files
+## Common Mistakes
+1. **`COPY` the entire builder** instead of just the output.
+2. **Heavy runtime base** (`node:20` instead of `nginx:alpine`).
+3. **Numbered stages** (`--from=0`) → fragile; name them.
+4. **No `.dockerignore`** → bloated build context.
 
-1️⃣8️⃣ Best Practices
-Always Use Minimal Runtime Image
-alpine / slim / jre / scratch
+---
 
-Do Not Copy Entire Project
+## Quick Self-Check
+1. What does a single-stage image wastefully include?
+2. What's the only way to move files from the builder to the runtime stage?
+3. Which stage becomes the final image?
+4. Give two security benefits of multi-stage builds.
+5. When is multi-stage *not* worth it?
 
-Copy only required output.
+---
 
-Use Named Stages
+## Hands-On Lab
+```bash
+# build the React multi-stage example
+docker build -t react-multi -f Dockerfile-mulitstage .
+docker images react-multi          # compare its size to a single-stage build!
+docker run -d -p 8080:80 react-multi
+# open http://localhost:8080
+```
+Compare the size of the multi-stage image vs a single-stage one - often **10× smaller**.
 
-Avoid index numbers.
+---
 
-Add USER in Final Stage
+## End of Day 8 Summary
+- Single-stage = bloated + risky; multi-stage = lean + secure
+- Build heavy, ship light via `COPY --from`
+- Patterns for React, Python, Java
+- Minimal base + non-root + `.dockerignore`
 
-Security requirement.
-
-1️⃣9️⃣ Common Mistakes
-
-❌ Running application in builder stage
-❌ Copying unnecessary files
-❌ Using full OS in runtime
-❌ Forgetting .dockerignore
-
-2️⃣0️⃣ When NOT Needed
-
-Simple scripts:
-
-single python file
-simple static nginx
-
-
-Multi-stage useful mainly for build processes.
+Next up → [**Day 9: Docker Compose & a Real Multi-Container App**](../day9/notes-docker-compose.md)

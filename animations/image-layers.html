@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Docker Image Layers & Build Cache — Interactive</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a1929;color:#e3f2fd;
+    min-height:100vh;padding:22px;display:flex;flex-direction:column;align-items:center;}
+  h1{font-size:1.55rem;text-align:center;}
+  p.sub{color:#90a4ae;max-width:720px;text-align:center;margin:6px 0 16px;}
+  .analogy{background:#102a43;border:1px solid #1e3a5f;border-left:4px solid #29b6f6;
+    border-radius:8px;padding:12px 16px;max-width:780px;font-size:.88rem;margin-bottom:18px;}
+  .analogy b{color:#29b6f6;}
+  .layout{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;width:100%;max-width:960px;}
+  @media(max-width:780px){.layout{grid-template-columns:1fr;}}
+  .panel{background:#102a43;border:1px solid #1e3a5f;border-radius:14px;padding:16px;}
+  .panel h2{font-size:1rem;margin-bottom:10px;color:#4fc3f7;}
+  .dockerfile{font-family:'Cascadia Code',Consolas,monospace;font-size:.82rem;line-height:1.7;}
+  .dockerfile .ln{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;margin-bottom:4px;
+    border:1px solid transparent;}
+  .dockerfile .kw{color:#ff7043;font-weight:700;}
+  .stack{display:flex;flex-direction:column-reverse;gap:6px;min-height:260px;justify-content:flex-end;}
+  .layer{border-radius:8px;padding:10px 12px;font-size:.8rem;font-weight:600;border:1px solid;
+    display:flex;justify-content:space-between;align-items:center;transition:all .35s;}
+  .layer.cached{background:#1b3a2a;border-color:#43a047;color:#a5d6a7;}
+  .layer.rebuilt{background:#3a2f10;border-color:#ffb300;color:#ffe082;
+    animation:flash .5s;}
+  @keyframes flash{0%{transform:scale(.9);}50%{transform:scale(1.04);}100%{transform:scale(1);}}
+  .layer .tag{font-size:.68rem;padding:2px 7px;border-radius:999px;}
+  .layer.cached .tag{background:#43a047;color:#04210f;}
+  .layer.rebuilt .tag{background:#ffb300;color:#3a2600;}
+  .controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;justify-content:center;max-width:960px;}
+  button{border:none;border-radius:9px;padding:10px 15px;font-weight:700;cursor:pointer;font-size:.83rem;
+    background:#29b6f6;color:#04293f;}
+  button.alt{background:#455a64;color:#fff;} button:hover{filter:brightness(1.1);}
+  .timer{margin-top:14px;font-size:.9rem;color:#90a4ae;text-align:center;max-width:720px;}
+  .timer b{color:#4fc3f7;font-size:1.1rem;}
+  .note{margin-top:6px;font-size:.8rem;color:#78909c;}
+</style>
+</head>
+<body>
+  <h1>🧱 Docker Image Layers & Build Cache</h1>
+  <p class="sub">Each Dockerfile instruction becomes a cached layer. <b>Rebuild</b> after changing different things and watch which layers are <span style="color:#a5d6a7">reused (fast)</span> vs <span style="color:#ffe082">rebuilt (slow)</span>.</p>
+
+  <div class="analogy">
+    🥞 <b>Analogy:</b> Layers are like a stack of pancakes made in order. Docker remembers each one. If you only change the <b>top</b> pancake, it keeps all the lower ones. But change a <b>lower</b> pancake and every pancake above it must be re-cooked — that’s why we put slow, rarely-changing steps (installing dependencies) <b>below</b> fast-changing ones (copying source code).
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>📄 Dockerfile</h2>
+      <div class="dockerfile" id="dockerfile"></div>
+    </div>
+    <div class="panel">
+      <h2>🧊 Image Layers (built bottom-up)</h2>
+      <div class="stack" id="stack"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="first">▶️ First build (all layers run)</button>
+    <button class="alt" id="code">✏️ Change SOURCE code → rebuild</button>
+    <button class="alt" id="deps">📦 Change dependencies → rebuild</button>
+    <button class="alt" id="base">🔄 Change base image → rebuild</button>
+  </div>
+
+  <div class="timer" id="timer">Click <b>First build</b> to begin.</div>
+  <div class="note">💡 “Cached” layers take ~0s. The first layer that changes — and everything above it — must rebuild.</div>
+
+<script>
+  // layers bottom (0) -> top
+  const layers=[
+    {kw:"FROM", rest:"node:20-alpine", cost:5, changedBy:["base"]},
+    {kw:"WORKDIR", rest:"/app", cost:0, changedBy:["base"]},
+    {kw:"COPY", rest:"package*.json ./", cost:1, changedBy:["base","deps"]},
+    {kw:"RUN", rest:"npm install", cost:40, changedBy:["base","deps"]},
+    {kw:"COPY", rest:". .", cost:2, changedBy:["base","deps","code"]},
+    {kw:"RUN", rest:"npm run build", cost:15, changedBy:["base","deps","code"]},
+  ];
+
+  const dfEl=document.getElementById("dockerfile"), stackEl=document.getElementById("stack");
+  dfEl.innerHTML=layers.map(l=>`<div class="ln"><span class="kw">${l.kw}</span><span>${l.rest}</span></div>`).join("");
+
+  function render(states,total){
+    stackEl.innerHTML=layers.map((l,i)=>{
+      const s=states[i];
+      return `<div class="layer ${s}"><span>${l.kw} ${l.rest}</span><span class="tag">${s==='cached'?'CACHED ~0s':'REBUILT +'+l.cost+'s'}</span></div>`;
+    }).join("");
+    document.getElementById("timer").innerHTML=`Total build time: <b>${total}s</b> ${total<=3?'⚡ (cache hit!)':''}`;
+  }
+
+  function build(trigger){
+    let invalidated=false, total=0; const states=[];
+    for(let i=0;i<layers.length;i++){
+      if(!invalidated && trigger && layers[i].changedBy.includes(trigger)) invalidated=true;
+      if(trigger===null){ // first build: everything runs
+        states[i]="rebuilt"; total+=layers[i].cost;
+      } else if(invalidated){
+        states[i]="rebuilt"; total+=layers[i].cost;
+      } else {
+        states[i]="cached";
+      }
+    }
+    render(states,total);
+  }
+
+  document.getElementById("first").onclick=()=>build(null);
+  document.getElementById("code").onclick=()=>build("code");
+  document.getElementById("deps").onclick=()=>build("deps");
+  document.getElementById("base").onclick=()=>build("base");
+
+  // initial empty stack
+  render(layers.map(()=> 'cached'),0);
+  document.getElementById("timer").innerHTML="Click <b>First build</b> to begin.";
+</script>
+</body>
+</html>

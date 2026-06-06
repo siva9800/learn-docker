@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VMs vs Containers — Interactive Comparison</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a1929;color:#e3f2fd;
+    min-height:100vh;padding:22px;display:flex;flex-direction:column;align-items:center;}
+  h1{font-size:1.6rem;text-align:center;}
+  p.sub{color:#90a4ae;max-width:700px;text-align:center;margin:6px 0 16px;}
+  .analogy{background:#102a43;border:1px solid #1e3a5f;border-left:4px solid #29b6f6;
+    border-radius:8px;padding:12px 16px;max-width:780px;font-size:.9rem;margin-bottom:18px;}
+  .analogy b{color:#29b6f6;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:920px;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  .col{background:#102a43;border:1px solid #1e3a5f;border-radius:14px;padding:16px;}
+  .col h2{text-align:center;font-size:1.2rem;margin-bottom:4px;}
+  .col .tag{text-align:center;font-size:.78rem;color:#90a4ae;margin-bottom:14px;}
+  .vm h2{color:#ff7043;} .ct h2{color:#26c6da;}
+  .layer{border-radius:8px;padding:9px;margin-bottom:7px;text-align:center;font-size:.82rem;
+    font-weight:600;opacity:0;transform:translateY(8px);animation:rise .5s forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  .app{background:#43a047;color:#fff;} .bins{background:#5c6bc0;color:#fff;}
+  .guestos{background:#ef5350;color:#fff;} .hyper{background:#8d6e63;color:#fff;}
+  .docker{background:#0288d1;color:#fff;} .hostos{background:#455a64;color:#fff;}
+  .hw{background:#263238;color:#b0bec5;border:1px dashed #546e7a;}
+  .appbox{display:flex;gap:6px;} .appbox>div{flex:1;}
+  .stats{display:flex;justify-content:space-around;margin-top:12px;font-size:.8rem;text-align:center;}
+  .stats b{display:block;font-size:1.3rem;}
+  .vm .stats b{color:#ff7043;} .ct .stats b{color:#26c6da;}
+  .controls{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{border:none;border-radius:9px;padding:11px 18px;font-weight:700;cursor:pointer;font-size:.88rem;
+    background:#29b6f6;color:#04293f;}
+  button:hover{filter:brightness(1.1);}
+  .verdict{max-width:780px;margin-top:18px;background:#102a43;border:1px solid #1e3a5f;
+    border-radius:10px;padding:14px 18px;font-size:.88rem;line-height:1.55;}
+  .verdict h3{color:#29b6f6;margin-bottom:6px;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.84rem;}
+  td,th{border:1px solid #1e3a5f;padding:7px 10px;text-align:left;}
+  th{color:#90a4ae;}
+</style>
+</head>
+<body>
+  <h1>🖥️ Virtual Machines vs 🐳 Containers</h1>
+  <p class="sub">The single most important idea in Day 1. Click <b>“Add 3 apps”</b> and watch why containers are so much lighter than virtual machines.</p>
+
+  <div class="analogy">
+    🏠 <b>Analogy:</b> A <b>Virtual Machine</b> is like building a <b>separate house</b> for every guest — each with its own foundation, plumbing, and kitchen (a full operating system). A <b>Container</b> is like giving each guest a <b>private room in one shared apartment building</b> — they get their own space, but share the building’s foundation and utilities (the host OS kernel). Same privacy, a fraction of the cost.
+  </div>
+
+  <div class="grid">
+    <div class="col vm">
+      <h2>🖥️ Virtual Machines</h2>
+      <div class="tag">Each app = a full Guest OS</div>
+      <div id="vmStack"></div>
+      <div class="stats">
+        <div>Size per app<b id="vmSize">~ GBs</b></div>
+        <div>Boot time<b id="vmBoot">minutes</b></div>
+      </div>
+    </div>
+
+    <div class="col ct">
+      <h2>🐳 Containers</h2>
+      <div class="tag">Apps share the host OS kernel</div>
+      <div id="ctStack"></div>
+      <div class="stats">
+        <div>Size per app<b id="ctSize">~ MBs</b></div>
+        <div>Boot time<b id="ctBoot">seconds</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="add">➕ Add 3 apps</button>
+    <button id="reset">↻ Reset</button>
+  </div>
+
+  <div class="verdict">
+    <h3>Why containers win for most workloads</h3>
+    Notice the repeated <span style="color:#ef5350">red Guest OS</span> blocks on the VM side — every app drags a whole operating system with it. Containers <b>share one OS kernel</b>, so they’re smaller, start in seconds, and you can run far more of them on the same machine.
+    <table>
+      <tr><th>Aspect</th><th>Virtual Machine</th><th>Container</th></tr>
+      <tr><td>Isolation unit</td><td>Full Guest OS</td><td>Process (shares kernel)</td></tr>
+      <tr><td>Size</td><td>Gigabytes</td><td>Megabytes</td></tr>
+      <tr><td>Startup</td><td>Minutes</td><td>Seconds</td></tr>
+      <tr><td>Density (per host)</td><td>A few</td><td>Dozens–hundreds</td></tr>
+      <tr><td>Best for</td><td>Strong isolation, different OSes</td><td>Microservices, fast scaling</td></tr>
+    </table>
+    <p style="margin-top:8px;color:#90a4ae">💡 They’re not enemies — in the cloud, containers often run <i>inside</i> VMs to get both speed and strong isolation.</p>
+  </div>
+
+<script>
+  let count=0;
+  const vm=document.getElementById("vmStack"), ct=document.getElementById("ctStack");
+  function layer(parent,cls,text){const d=document.createElement("div");d.className="layer "+cls;d.textContent=text;parent.appendChild(d);}
+  function base(){
+    vm.innerHTML="";ct.innerHTML="";
+    // build bottom-up shared infrastructure
+    drawApps();
+  }
+  function drawApps(){
+    vm.innerHTML="";ct.innerHTML="";
+    // VM side: each app has App+Bins+GuestOS, then shared Hypervisor+HostOS+HW
+    const appsHtml=document.createElement("div");appsHtml.className="appbox";
+    for(let i=0;i<count;i++){
+      const stack=document.createElement("div");
+      stack.innerHTML=`<div class="layer app">App ${i+1}</div><div class="layer bins">Bins/Libs</div><div class="layer guestos">Guest OS</div>`;
+      appsHtml.appendChild(stack);
+    }
+    vm.appendChild(appsHtml);
+    layer(vm,"hyper","Hypervisor");
+    layer(vm,"hostos","Host Operating System");
+    layer(vm,"hw","Physical Server (CPU · RAM · Disk)");
+
+    // Container side: each app has App+Bins only, then shared Docker+HostOS+HW
+    const cbox=document.createElement("div");cbox.className="appbox";
+    for(let i=0;i<count;i++){
+      const stack=document.createElement("div");
+      stack.innerHTML=`<div class="layer app">App ${i+1}</div><div class="layer bins">Bins/Libs</div>`;
+      cbox.appendChild(stack);
+    }
+    ct.appendChild(cbox);
+    layer(ct,"docker","Docker Engine");
+    layer(ct,"hostos","Host Operating System (shared kernel)");
+    layer(ct,"hw","Physical Server (CPU · RAM · Disk)");
+
+    document.getElementById("vmSize").textContent = count?`~${count} GB`:"~ GBs";
+    document.getElementById("ctSize").textContent = count?`~${count*30} MB`:"~ MBs";
+  }
+  document.getElementById("add").onclick=()=>{count=Math.min(count+3,6);drawApps();};
+  document.getElementById("reset").onclick=()=>{count=0;drawApps();};
+  count=1;drawApps();
+</script>
+</body>
+</html>

@@ -1,586 +1,225 @@
-# 🐳 DOCKER – DAY 2 (Hands-On Foundations)
+# Docker - Day 2: Running Your First Container
 
-## Topic Coverage:
-
-1. Networking basics (IP + Port + Accessing applications)
-2. Docker Architecture
-3. Installing Docker Desktop
-4. Docker CLI introduction
-5. Using public images
-6. Running first container
-7. Accessing application via browser
-8. Basic Docker commands
+> **Goal of today:** install Docker, run a real app inside a container, and open it in your browser - then understand *what just happened*.
 
 ---
 
-# 🎯 Day-2 Learning Objectives
-
-By the end of this class, students will be able to:
-
-✅ Understand IP and Port mapping
-✅ Explain Docker architecture
-✅ Install Docker Desktop correctly
-✅ Use Docker CLI
-✅ Pull public images
-✅ Run containers
-✅ Access containerized applications in browser
-✅ Understand Image → Container relationship practically
+## Objective of Day 2
+By the end you'll be able to:
+- Explain IP addresses and ports (the "address system" of apps)
+- Understand Docker's architecture (CLI → Engine → Registry)
+- Install Docker Desktop
+- Pull a public image and run a container
+- Access a containerized app in your browser
+- Use the essential commands: `run`, `ps`, `stop`, `start`, `rm`, `images`, `rmi`
 
 ---
 
-# 1️⃣ Pre-Requisite Concepts — IP Address & Port (VERY IMPORTANT)
+## 1 Prerequisite: IP Addresses & Ports
 
-Before Docker commands, students must understand **how applications are accessed**.
+### Analogy
+- An **IP address** is the **building's street address** - it finds the *machine*.
+- A **port** is the **flat/apartment number** - it finds the *specific app* inside that machine.
 
----
+> *IP identifies the machine; the port identifies the application.*
 
-## What is an IP Address?
+### IP address
+A unique address identifying a machine on a network: `192.168.1.10`, `10.0.0.5`, `127.0.0.1`.
+- **Public IP** - reachable on the internet
+- **Private IP** - inside a local network (`192.168.x.x`, `10.x.x.x`)
+- **`localhost` (`127.0.0.1`)** - *this very machine*
 
-### Definition:
+### Port
+A number identifying a specific app on a machine. One IP can host many apps; the port routes traffic to the right one.
 
-> **An IP address is a unique address used to identify a machine in a network.**
+| App | Port |
+|---|---|
+| HTTP | 80 |
+| HTTPS | 443 |
+| MySQL | 3306 |
+| SSH | 22 |
 
-Examples:
-
+When you visit `http://localhost:8080`:
 ```
-192.168.1.10
-10.0.0.5
-127.0.0.1
+localhost → your machine     8080 → the app's port
 ```
 
----
-
-### Types You Should Explain:
-
----
-
-### Public IP:
-
-* Used on internet
-* Accessible globally
-
----
-
-### Private IP:
-
-* Used inside networks
-* Example:
-
-```
-192.168.x.x
-10.x.x.x
+```mermaid
+flowchart LR
+    B["Browser<br/>localhost:8080"] --> M["Your machine (IP)"]
+    M -->|port 8080| App["App inside container"]
 ```
 
 ---
 
-### Localhost (127.0.0.1):
+## 2 Docker Architecture
 
-> Means: **This same machine**
+### Analogy: ordering at a restaurant
+- **Docker CLI** = *you*, placing the order (`docker run...`)
+- **Docker Engine** = the *kitchen* that actually cooks (builds/runs containers)
+- **Registry** = the *supplier warehouse* that stocks ingredients (images)
 
-When you access:
-
-```
-http://localhost
-```
-
-You are accessing your own computer.
-
----
-
-## What is a Port?
-
-### Definition:
-
-> **A port is a logical number used to identify a specific application running on a machine.**
-
----
-
-### Example:
-
-| Application | Port |
-| ----------- | ---- |
-| HTTP        | 80   |
-| HTTPS       | 443  |
-| MySQL       | 3306 |
-| SSH         | 22   |
-| Nginx       | 80   |
-
----
-
-## Why Ports Are Needed?
-
-One IP can run multiple applications.
-
-Ports help OS decide:
-
-👉 Which app should receive traffic.
-
----
-
-## How Browser Access Works
-
-When you type:
-
-```
-http://localhost:8080
-```
-
-It means:
-
-```
-localhost → Your machine
-8080 → Application port
+```mermaid
+flowchart LR
+    CLI["Docker CLI<br/>(you type commands)"] --> Engine["Docker Engine<br/>(builds & runs containers)"]
+    Engine <--> Registry["Registry<br/>(Docker Hub - stores images)"]
+    style CLI fill:#0277bd,color:#fff
+    style Engine fill:#6a1b9a,color:#fff
+    style Registry fill:#2e7d32,color:#fff
 ```
 
 ---
 
-## Real World Analogy
+## 3 Installing Docker Desktop (Windows)
 
-### IP = Building Address
+> **Docker Desktop** installs the Docker Engine + CLI on Windows/Mac.
 
-### Port = Flat Number
+**Requirements:** Windows 10/11 64-bit • virtualization enabled in BIOS • 8 GB RAM recommended • **WSL 2** (Docker Desktop sets this up for you).
 
----
-
-## Important Line To Say:
-
-> IP identifies the machine, Port identifies the application.
-
-
-# 2️⃣ Installing Docker Desktop (Windows)
-
-Now that students understand **how applications are accessed**, move to Docker installation.
-
----
-
-## What is Docker Desktop?
-
-> Docker Desktop is an application that installs Docker Engine and Docker CLI on Windows/Mac.
-
----
-
-## System Requirements
-
-Tell students:
-
-✔ Windows 10 / 11 (64-bit)
-✔ Virtualization enabled
-✔ Minimum 8GB RAM recommended
-
----
-
-## Step 1: Download Docker Desktop
-
-Open browser:
-
-👉 [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
-
-Click:
-
-```
-Download for Windows
-```
-
----
-
-## Step 2: Install Docker Desktop
-
-Run installer.
-
-During installation:
-
-✔ Enable WSL2
-✔ Use recommended settings
-
-Click:
-
-```
-Install
-```
-
----
-
-## Step 3: Restart System
-
-Restart is mandatory.
-
----
-
-## Step 4: Start Docker Desktop
-
-After reboot:
-
-Open Docker Desktop.
-
-Wait until:
-
-✅ Docker Engine is running
-(Green indicator)
-
----
-
-## Step 5: Verify Installation
-
-Open terminal (PowerShell / CMD):
-
-Run:
-
+1. Download from [docker.com](https://www.docker.com/products/docker-desktop/) → **Download for Windows**.
+2. Run the installer → **enable WSL 2** when prompted → keep recommended settings.
+3. **Restart** your computer.
+4. Launch Docker Desktop; wait for the **green "Engine running"** indicator.
+5. Verify in PowerShell:
 ```bash
-docker --version
+docker --version       # shows the installed version
+docker info            # no error = engine is running
 ```
 
-Expected:
-
-```
-Docker version xx.x.x
-```
+> On Windows Home, Docker uses the **WSL 2** backend (a lightweight Linux layer). That's normal and recommended.
 
 ---
 
-## Verify Engine Running
+## 4 Pulling a Public Image
 
-```bash
-docker info
-```
-
-No error = Docker working.
-
----
-
-# 3️⃣ Running First Docker Container (Hands-On First)
----
-
-> We are NOT creating our own image now.
-> Someone has already created an image and uploaded it to the internet.
-> We will download it and run it.
-
----
-
-# Pulling Public Image (Nginx)
-
----
-
-## Step 1: Download Image
-
-Run:
-
+Someone already built an Nginx web-server image and published it. Download it:
 ```bash
 docker pull nginx
+docker images          # confirm it's stored locally
 ```
+`docker images` columns: **Repository** (name), **Tag** (version), **Image ID**, **Size**.
 
-Explain:
-
-✔ Image downloaded from internet
-✔ Stored locally
-✔ Application is NOT running yet
+> An image is just a **template on disk** - pulling it does **not** run anything yet.
 
 ---
 
-## Verify Image Downloaded
-
-Run:
-
-```bash
-docker images
-```
-
-Explain output:
-
-* Repository = image name
-* Tag = version
-* Image ID
-* Size
-
----
-
-Tell students:
-
-> Image is just a package/template.
-> It does not run automatically.
-
----
-
-# 4️⃣ Running Container From Image
-
-Now convert **image → container**
-
----
-
-## Run Container
+## 5 Running Your First Container
 
 ```bash
 docker run -d -p 8080:80 nginx
 ```
 
----
+| Part | Meaning |
+|---|---|
+| `docker run` | create **and** start a container |
+| `-d` | **detached** - run in the background |
+| `-p 8080:80` | **port map**: your laptop's `8080` → container's `80` |
+| `nginx` | which image to use |
 
-## Explain Command Slowly
-
-| Part   | Meaning                           |
-| ------ | --------------------------------- |
-| docker | Docker command                    |
-| run    | Create + start container          |
-| -d     | Run in background                 |
-| -p     | Port mapping                      |
-| 8080   | Host machine port                 |
-| 80     | Application port inside container |
-| nginx  | Image name                        |
-
----
-
-## Explain Port Mapping
-
-Say:
-
+### Port mapping, visualized
+```mermaid
+flowchart LR
+    Browser["localhost:8080"] -->|"-p 8080:80"| Container["nginx listening on :80"]
 ```
-Your Laptop Port 8080 → Container Port 80
-```
+Your laptop's port **8080** forwards into the container's port **80** where Nginx listens.
 
-Browser request:
+### See it work
+Open `http://localhost:8080` → the **Nginx welcome page**.
 
-```
-localhost:8080
-```
-
-is forwarded to:
-
-```
-nginx inside container
-```
+> You never installed Nginx on Windows - it's running *inside the container*. That's the magic.
 
 ---
 
-# 5️⃣ Access Application In Browser
-
-Open browser:
-
+## 6 Inspecting Containers
+```bash
+docker ps              # running containers
+docker ps -a           # ALL containers (incl. stopped)
 ```
-http://localhost:8080
-```
-
-Students will see:
-
-👉 Nginx Welcome Page
+Columns: Container ID • Image • Status • Ports.
 
 ---
 
-Explain:
+## 7 Essential Lifecycle Commands
 
-> We did not install Nginx on Windows.
-> Nginx is running inside container.
+```mermaid
+flowchart LR
+    img["image"] -->|docker run| run["running"]
+    run -->|docker stop| stop["stopped"]
+    stop -->|docker start| run
+    stop -->|docker rm| gone["removed"]
+    img -->|docker rmi| delimg["image deleted"]
+```
+
+| Command | What it does |
+|---|---|
+| `docker run -d -p 8080:80 nginx` | create + start a container |
+| `docker ps` / `docker ps -a` | list running / all containers |
+| `docker stop <id>` | stop (but keep) a container |
+| `docker start <id>` | start a stopped container |
+| `docker rm <id>` | delete a container |
+| `docker rmi nginx` | delete an image |
+| `docker logs <id>` | view a container's output |
+| `docker exec -it <id> sh` | open a shell inside a running container |
+
+> You can use just the **first few characters** of a container ID, or give containers a name with `--name`.
 
 ---
 
-# 6️⃣ Verify Running Container
-
-Run:
+## 8 Reinforce: Image vs Container
+- **Image** = read-only template, downloaded from a registry.
+- **Container** = a running instance that uses CPU & RAM.
+- **One image → many containers** (run nginx 3 times → 3 containers).
 
 ```bash
+docker run -d -p 8081:80 nginx
+docker run -d -p 8082:80 nginx     # same image, second container
+docker ps                          # two nginx containers running
+```
+
+---
+
+## Common Beginner Mistakes
+1. **Forgetting `-p`** → app runs but you can't reach it from the browser.
+2. **Port already in use** (`8080`) → pick another host port (`-p 8090:80`).
+3. **Confusing `stop` with `rm`** - `stop` pauses, `rm` deletes.
+4. **Expecting `docker pull` to run the app** - it only downloads.
+
+---
+
+## Quick Self-Check
+1. In `localhost:8080`, what does `8080` represent?
+2. Name the three parts of Docker's architecture.
+3. What does `-d` do in `docker run -d`?
+4. In `-p 8080:80`, which number is the host and which is the container?
+5. Difference between `docker stop` and `docker rm`?
+
+---
+
+## Hands-On Lab / Homework
+```bash
+# Task 1: run redis
+docker run -d --name myredis redis
 docker ps
-```
 
-Explain columns:
-
-✔ Container ID
-✔ Image used
-✔ Status
-✔ Port mapping
-
----
-
-# 7️⃣ Basic Docker Commands (Containers + Images)
-
-
----
-
-## Show All Containers
-
-```bash
-docker ps -a
-```
-
-Shows:
-
-✔ Running
-✔ Stopped containers
-
----
-
-## Stop Container
-
-```bash
-docker stop <container-id>
-```
-
-Explain:
-
-Container stopped but not deleted.
-
----
-
-## Start Container Again
-
-```bash
-docker start <container-id>
-```
-
----
-
-## Remove Container
-
-```bash
-docker rm <container-id>
-```
-
-Explain:
-
-Deletes container instance.
-
----
-
-## Remove Image
-
-```bash
-docker rmi nginx
-```
-
-Explain:
-
-Deletes downloaded image.
-
----
-
-# 8️⃣ Important Concept Reinforcement
-
-
----
-
-### Image:
-
-* Template
-* Downloaded from internet
-* Read-only
-
----
-
-### Container:
-
-* Running instance
-* Uses CPU & RAM
-* Created from image
-
----
-
-Example:
-
-> One nginx image → multiple containers.
-
----
-
-# 9️⃣ Now Introduce Docker Architecture (After Hands-On)
-
-
-
----
-
-## Docker Architecture Components
-
-```
-Docker CLI → Docker Engine → Docker Registry
-```
-
----
-
-### Docker CLI
-
-What students used:
-
-```bash
-docker run
-docker pull
-docker ps
-```
-
-CLI only sends commands.
-
----
-
-### Docker Engine
-
-Engine:
-
-✔ Pulled nginx image
-✔ Created container
-✔ Started application
-✔ Managed ports
-
----
-
-### Docker Registry
-
-Registry:
-
-✔ Stored nginx image
-✔ Provided it when we pulled
-
-Example:
-
-Docker Hub.
-
----
-
-## Architecture Flow Using Today’s Demo
-
-When we ran:
-
-```bash
-docker run nginx
-```
-
-What happened:
-
-1. CLI sent command
-2. Engine checked local images
-3. Engine pulled from registry
-4. Engine created container
-5. Application started
-
----
-
-# 🔚 Day-2 Final Summary (Tell Students)
-
-Students should remember:
-
-✔ IP + Port = Application access
-✔ Docker Desktop installs Docker Engine
-✔ Public images exist
-✔ Image is template
-✔ Container is running app
-✔ Port mapping exposes container apps
-✔ Docker uses CLI, Engine, Registry
-
----
-
-# 📝 Homework
-
----
-
-### Task 1:
-
-Run redis:
-
-```bash
-docker run redis
-```
-
----
-
-### Task 2:
-
-Run nginx on different port:
-
-```bash
+# Task 2: run nginx on a different port
 docker run -d -p 9090:80 nginx
+# open http://localhost:9090
+
+# Task 3: peek inside a container
+docker exec -it myredis sh
+#   (type 'exit' to leave)
+
+# Task 4: clean up
+docker ps -a
+docker rm -f myredis
 ```
 
 ---
+
+## End of Day 2 Summary
+- IP = machine, Port = app
+- Docker = CLI + Engine + Registry
+- Pull an image, run a container, map ports, open in browser
+- Manage the container lifecycle
+
+Next up → [**Day 3: Building Your Own Image**](../day3/notes.md)

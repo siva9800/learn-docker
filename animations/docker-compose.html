@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Docker Compose — Multi-Container App (Interactive)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a1929;color:#e3f2fd;
+    min-height:100vh;padding:22px;display:flex;flex-direction:column;align-items:center;}
+  h1{font-size:1.55rem;text-align:center;}
+  p.sub{color:#90a4ae;max-width:720px;text-align:center;margin:6px 0 16px;}
+  .analogy{background:#102a43;border:1px solid #1e3a5f;border-left:4px solid #29b6f6;
+    border-radius:8px;padding:12px 16px;max-width:780px;font-size:.88rem;margin-bottom:18px;}
+  .analogy b{color:#29b6f6;}
+  svg{background:#102a43;border:1px solid #1e3a5f;border-radius:14px;width:min(840px,96vw);height:330px;}
+  .svc rect{transition:fill .4s,stroke .4s;}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;justify-content:center;}
+  button{border:none;border-radius:9px;padding:11px 18px;font-weight:700;cursor:pointer;font-size:.88rem;
+    background:#29b6f6;color:#04293f;} button.alt{background:#455a64;color:#fff;}
+  button:hover:not(:disabled){filter:brightness(1.1);} button:disabled{opacity:.4;cursor:not-allowed;}
+  .term{background:#010f1a;border:1px solid #1e3a5f;border-radius:10px;padding:14px 16px;
+    width:min(840px,96vw);font-family:'Cascadia Code',Consolas,monospace;font-size:.82rem;
+    min-height:120px;margin-top:14px;}
+  .term .c{color:#4fc3f7;} .term .g{color:#81c784;} .term .y{color:#ffd54f;} .term .d{color:#90a4ae;}
+</style>
+</head>
+<body>
+  <h1>🎻 Docker Compose — One Command, Whole App</h1>
+  <p class="sub">Watch <code>docker compose up</code> start a 3-tier app in the right order: the database becomes healthy, then the backend connects, then the frontend goes live.</p>
+
+  <div class="analogy">
+    🎻 <b>Analogy:</b> Compose is the <b>conductor of an orchestra</b>. Instead of cueing each musician (container) by hand with long <code>docker run</code> commands, one wave of the baton (<code>docker compose up</code>) starts everyone together — in the right order, in tune, on the same shared network.
+  </div>
+
+  <svg id="canvas" viewBox="0 0 840 330"></svg>
+
+  <div class="controls">
+    <button id="up">▶️ docker compose up</button>
+    <button class="alt" id="down" disabled>⏹️ docker compose down</button>
+  </div>
+
+  <div class="term" id="term"><span class="d"># click "docker compose up" to start the stack…</span></div>
+
+<script>
+  const ns="http://www.w3.org/2000/svg", svg=document.getElementById("canvas");
+  function el(t,a){const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+
+  // network box
+  function draw(states){
+    svg.innerHTML="";
+    svg.appendChild(el("rect",{x:20,y:60,width:800,height:250,rx:14,fill:"none",stroke:"#1e3a5f","stroke-dasharray":"6 6","stroke-width":2}));
+    const nt=el("text",{x:34,y:84,fill:"#607d8b","font-size":12,"font-weight":700});nt.textContent="🌐 compose network (services reach each other by name)";svg.appendChild(nt);
+
+    const browser=el("text",{x:420,y:36,"text-anchor":"middle",fill:"#90a4ae","font-size":13});
+    browser.textContent="🌐 Browser → localhost:3000";svg.appendChild(browser);
+
+    const defs=[
+      {id:"frontend",x:120,label:"🖥️ frontend",port:":80"},
+      {id:"backend", x:360,label:"⚙️ backend", port:":8000"},
+      {id:"db",      x:600,label:"🗄️ db",      port:":5432"},
+    ];
+    const colors={off:"#37474f",starting:"#5d4037",healthy:"#1b5e20",running:"#1565c0"};
+    const stroke={off:"#546e7a",starting:"#ffb300",healthy:"#43a047",running:"#42a5f5"};
+
+    // arrows
+    if(states.frontend==="running") svg.appendChild(el("line",{x1:240,y1:150,x2:360,y2:150,stroke:"#42a5f5","stroke-width":3,"marker-end":"url(#a)"}));
+    if(states.backend==="running"||states.backend==="starting") svg.appendChild(el("line",{x1:480,y1:150,x2:600,y2:150,stroke:"#42a5f5","stroke-width":3,"marker-end":"url(#a)"}));
+    const marker=el("marker",{id:"a",markerWidth:8,markerHeight:8,refX:7,refY:3,orient:"auto"});
+    marker.appendChild(el("path",{d:"M0,0 L7,3 L0,6 Z",fill:"#42a5f5"}));
+    const d=el("defs");d.appendChild(marker);svg.appendChild(d);
+
+    defs.forEach(s=>{
+      const st=states[s.id];
+      const g=el("g",{class:"svc"});
+      g.appendChild(el("rect",{x:s.x,y:110,width:120,height:80,rx:12,fill:colors[st],stroke:stroke[st],"stroke-width":3}));
+      const t1=el("text",{x:s.x+60,y:145,"text-anchor":"middle",fill:"#fff","font-size":14,"font-weight":700});t1.textContent=s.label;
+      const t2=el("text",{x:s.x+60,y:165,"text-anchor":"middle",fill:"#b0bec5","font-size":11});t2.textContent=s.port;
+      const t3=el("text",{x:s.x+60,y:182,"text-anchor":"middle",fill:stroke[st],"font-size":10,"font-weight":700});
+      t3.textContent={off:"stopped",starting:"starting…",healthy:"✓ healthy",running:"✓ running"}[st];
+      g.append(t1,t2,t3);svg.appendChild(g);
+    });
+  }
+
+  const term=document.getElementById("term");
+  function log(html){term.innerHTML+=`<div>${html}</div>`;term.scrollTop=term.scrollHeight;}
+  function clearTerm(){term.innerHTML="";}
+
+  let state={frontend:"off",backend:"off",db:"off"};
+  draw(state);
+
+  const steps=[
+    ()=>{log('<span class="c">$ docker compose up</span>');},
+    ()=>{state.db="starting";draw(state);log('<span class="d">Creating network "app_default"</span>');log('<span class="d">Creating volume "app_dbdata"</span>');log('<span class="y">Starting db …</span>');},
+    ()=>{state.db="healthy";draw(state);log('<span class="g">✔ db is healthy</span> <span class="d">(pg_isready passed)</span>');},
+    ()=>{state.backend="starting";draw(state);log('<span class="y">depends_on satisfied → Starting backend …</span>');},
+    ()=>{state.backend="running";draw(state);log('<span class="g">✔ backend connected to db:5432</span> <span class="d">(by name!)</span>');},
+    ()=>{state.frontend="starting";draw(state);log('<span class="y">Starting frontend …</span>');},
+    ()=>{state.frontend="running";draw(state);log('<span class="g">✔ frontend live → http://localhost:3000</span>');log('<span class="g">🎉 whole stack up with ONE command</span>');
+         document.getElementById("up").disabled=true;document.getElementById("down").disabled=false;},
+  ];
+
+  document.getElementById("up").onclick=()=>{
+    clearTerm();state={frontend:"off",backend:"off",db:"off"};draw(state);
+    document.getElementById("up").disabled=true;
+    steps.forEach((fn,i)=>setTimeout(fn,i*900));
+  };
+  document.getElementById("down").onclick=()=>{
+    log('<span class="c">$ docker compose down</span>');
+    state={frontend:"off",backend:"off",db:"off"};draw(state);
+    log('<span class="d">Stopped & removed frontend, backend, db + network</span>');
+    document.getElementById("down").disabled=true;document.getElementById("up").disabled=false;
+  };
+</script>
+</body>
+</html>
