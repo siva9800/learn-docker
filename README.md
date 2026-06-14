@@ -25,9 +25,9 @@ flowchart LR
 
 | Animation | What it teaches |
 |---|---|
-| [**VMs vs Containers**](animations/vms-vs-containers.html) | Why containers are so much lighter than virtual machines |
-| [**Image Layers & Build Cache**](animations/image-layers.html) | How images build in layers and why instruction order makes builds fast |
-| [**Docker Compose**](animations/docker-compose.html) | Watch a 3-tier app start in order with one command |
+| [**VMs vs Containers**](https://siva9800.github.io/devops-animations/docker/vms-vs-containers.html) | Why containers are so much lighter than virtual machines |
+| [**Image Layers & Build Cache**](https://siva9800.github.io/devops-animations/docker/image-layers.html) | How images build in layers and why instruction order makes builds fast |
+| [**Docker Compose**](https://siva9800.github.io/devops-animations/docker/docker-compose.html) | Watch a 3-tier app start in order with one command |
 
 ---
 
