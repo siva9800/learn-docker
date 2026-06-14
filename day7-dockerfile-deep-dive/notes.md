@@ -248,4 +248,4 @@ docker ps                     # watch the STATUS show (healthy) after a bit
 - CMD vs ENTRYPOINT, ARG vs ENV
 - Healthchecks, non-root, minimal images
 
-Next up → [**Day 8: Multi-Stage Builds & Optimization**](../day8/multi-stage-docker-file.md)
+Next up → [**Day 8: Multi-Stage Builds & Optimization**](../day8-multi-stage-builds/notes.md)

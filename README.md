@@ -46,15 +46,15 @@ flowchart LR
 
 | Day | Topic | What you'll learn |
 |---|---|---|
-| 1 | [Why Containers Exist](day1/notes.md) | OS, VMs vs containers, images & the "works on my machine" fix |
-| 2 | [Running Containers](day2/notes.md) | IP/ports, Docker architecture, run your first container in the browser |
-| 3 | [Building Your Own Image](day3/notes.md) | Dockerfile, layers & caching, `.dockerignore`, push to Docker Hub |
-| 4 | [Volumes & Data Persistence](day4/volumes.md) | Why data vanishes, named volumes vs bind mounts, persist a database |
-| 5 | [Docker Networking](day5/docker-networks.md) | bridge/host/none, name-based discovery, port mapping |
-| 6 | [Networking Hands-On Lab](day6/demo-on-networks.md) | Prove DNS & isolation; wire frontend → backend |
-| 7 | [Dockerfile Deep Dive](day7/docker-file-deep-dive.md) | Every instruction, build vs runtime, healthchecks, best practices |
-| 8 | [Multi-Stage Builds](day8/multi-stage-docker-file.md) | Tiny, secure production images |
-| 9 | [Docker Compose](day9/notes-docker-compose.md) | Run a full 3-tier app (UI + API + DB) with one command |
+| 1 | [Why Containers Exist](day1-why-containers/notes.md) | OS, VMs vs containers, images & the "works on my machine" fix |
+| 2 | [Running Containers](day2-running-containers/notes.md) | IP/ports, Docker architecture, run your first container in the browser |
+| 3 | [Building Your Own Image](day3-building-images/notes.md) | Dockerfile, layers & caching, `.dockerignore`, push to Docker Hub |
+| 4 | [Volumes & Data Persistence](day4-volumes/notes.md) | Why data vanishes, named volumes vs bind mounts, persist a database |
+| 5 | [Docker Networking](day5-networking/notes.md) | bridge/host/none, name-based discovery, port mapping |
+| 6 | [Networking Hands-On Lab](day6-networking-lab/notes.md) | Prove DNS & isolation; wire frontend → backend |
+| 7 | [Dockerfile Deep Dive](day7-dockerfile-deep-dive/notes.md) | Every instruction, build vs runtime, healthchecks, best practices |
+| 8 | [Multi-Stage Builds](day8-multi-stage-builds/notes.md) | Tiny, secure production images |
+| 9 | [Docker Compose](day9-docker-compose/notes.md) | Run a full 3-tier app (UI + API + DB) with one command |
 
 ---
 
@@ -96,11 +96,11 @@ By the end you'll be able to:
 
 ## Demo apps included
 This module ships runnable example apps you'll containerize:
-- `day3/react-frontend` - a React UI
-- `day4/python-backend` - a FastAPI backend
-- `day9/project` - the full 3-tier stack with a `docker-compose.yaml`
+- `day3-building-images/react-frontend` - a React UI
+- `day4-volumes/python-backend` - a FastAPI backend
+- `day9-docker-compose/project` - the full 3-tier stack with a `docker-compose.yaml`
 
 ---
 
-Ready? Start with → [**Day 1: Why Containers Exist**](day1/notes.md)
+Ready? Start with → [**Day 1: Why Containers Exist**](day1-why-containers/notes.md)
 Next module → [**learn-k8s**](../learn-k8s)

@@ -200,4 +200,4 @@ Compare the size of the multi-stage image vs a single-stage one - often **10× s
 - Patterns for React, Python, Java
 - Minimal base + non-root + `.dockerignore`
 
-Next up → [**Day 9: Docker Compose & a Real Multi-Container App**](../day9/notes-docker-compose.md)
+Next up → [**Day 9: Docker Compose & a Real Multi-Container App**](../day9-docker-compose/notes.md)

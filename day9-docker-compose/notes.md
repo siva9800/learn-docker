@@ -233,9 +233,9 @@ flowchart LR
 ---
 
 ## Hands-On Lab
-The [day9/project](project/) folder contains a full working stack. Try:
+The [project](project/) folder contains a full working stack. Try:
 ```bash
-cd day9/project
+cd day9-docker-compose/project
 docker compose up --build         # watch all three services start in order
 docker compose ps                 # see them running + (healthy)
 # open http://localhost:3000

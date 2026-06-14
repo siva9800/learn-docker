@@ -222,4 +222,4 @@ docker rm -f myredis
 - Pull an image, run a container, map ports, open in browser
 - Manage the container lifecycle
 
-Next up → [**Day 3: Building Your Own Image**](../day3/notes.md)
+Next up → [**Day 3: Building Your Own Image**](../day3-building-images/notes.md)

@@ -237,4 +237,4 @@ docker volume rm myvolume mysqldata 2>/dev/null
 - Used named volumes & bind mounts
 - Persisted a real database safely
 
-Next up → [**Day 5: Docker Networking**](../day5/docker-networks.md)
+Next up → [**Day 5: Docker Networking**](../day5-networking/notes.md)

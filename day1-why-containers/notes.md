@@ -217,4 +217,4 @@ No conflicts, clean isolation, stable deploys.
 - Image = static package; container = running instance
 - Docker = "build once, run everywhere"
 
-Next up → [**Day 2: Running Your First Container**](../day2/notes.md)
+Next up → [**Day 2: Running Your First Container**](../day2-running-containers/notes.md)

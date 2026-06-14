@@ -234,4 +234,4 @@ docker push <yourname>/react-app:v1
 - Used `.dockerignore` to keep images clean
 - Tagged and pushed an image to Docker Hub
 
-Next up → [**Day 4: Backend Containers & Data Persistence (Volumes)**](../day4/volumes.md)
+Next up → [**Day 4: Backend Containers & Data Persistence (Volumes)**](../day4-volumes/notes.md)

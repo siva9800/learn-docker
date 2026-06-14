@@ -2,7 +2,7 @@
 
 > **Goal of today:** understand how containers talk to each other, to your browser, and to the internet - and the crucial difference between the default and custom networks.
 
-> **Theory today, hands-on tomorrow:** [Day 6](../day6/demo-on-networks.md) is the practical lab for everything here.
+> **Theory today, hands-on tomorrow:** [Day 6](../day6-networking-lab/notes.md) is the practical lab for everything here.
 
 ---
 
@@ -203,4 +203,4 @@ docker network rm appnet          # delete (only if no container attached)
 - Custom bridge = DNS name discovery (default bridge ≠)
 - Port mapping, multi-network, inspection
 
-Next up → [**Day 6: Hands-On Networking Demo**](../day6/demo-on-networks.md) - prove all of this yourself.
+Next up → [**Day 6: Hands-On Networking Demo**](../day6-networking-lab/notes.md) - prove all of this yourself.

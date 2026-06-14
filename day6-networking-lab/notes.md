@@ -2,7 +2,7 @@
 
 > **Goal of today:** prove, with your own hands, how containers find and talk to each other by **name** on a custom network - and how network **isolation** keeps them safe.
 
-> Prerequisite: [Day 5 - Docker Networking](../day5/docker-networks.md) (the theory). Today we *do* it.
+> Prerequisite: [Day 5 - Docker Networking](../day5-networking/notes.md) (the theory). Today we *do* it.
 > Optional: open [vms-vs-containers.html](../animations/vms-vs-containers.html) for a refresher on why containers are so cheap to spin up.
 
 ---
@@ -116,7 +116,7 @@ docker network rm appnet othernet
 
 ## Demo 4 - A Realistic 2-Tier App (frontend → backend)
 
-Let's connect a backend API and a client on the same network, talking by name. (You can reuse the [Day 4 python-backend](../day4/python-backend/) and [Day 3 react-frontend](../day3/react-frontend/) apps.)
+Let's connect a backend API and a client on the same network, talking by name. (You can reuse the [Day 4 python-backend](../day4-volumes/python-backend/) and [Day 3 react-frontend](../day3-building-images/react-frontend/) apps.)
 
 ```bash
 # 1. one network for the whole app
@@ -178,4 +178,4 @@ You proved hands-on that:
 - Containers are **isolated** unless on a shared network
 - Real apps wire frontend → backend → db **by name**
 
-Next up → [**Day 7: Dockerfile Deep Dive**](../day7/docker-file-deep-dive.md) - how images are actually built.
+Next up → [**Day 7: Dockerfile Deep Dive**](../day7-dockerfile-deep-dive/notes.md) - how images are actually built.
