@@ -75,6 +75,20 @@ npm --version     # e.g. 10.x.x
 
 > Always pick **LTS** (Long-Term Support), not "Current." LTS is the stable version companies actually use.
 
+> [!IMPORTANT]
+> **Windows: "npm cannot be loaded because running scripts is disabled on this system"**
+> This is the single most common error Windows students hit. It is **not** an npm problem - it is a PowerShell security setting. On Windows, `npm` is a PowerShell script, and PowerShell blocks scripts by default.
+>
+> **Fix (run once, in PowerShell):**
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
+> Type **Y** to confirm. `-Scope CurrentUser` means it only affects your account (no admin needed), and `RemoteSigned` is the safe, standard developer setting: your own local scripts run, while scripts downloaded from the internet must be signed. After this, `npm` works normally in every new PowerShell window.
+>
+> **Prefer not to change the policy?** Any of these work without it:
+> - Use `npm.cmd install` instead of `npm install`.
+> - Run your commands in **Command Prompt (cmd)** or **Git Bash** instead of PowerShell - neither has this restriction.
+
 ### macOS
 ```bash
 brew install node        # using Homebrew
