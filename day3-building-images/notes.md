@@ -53,17 +53,86 @@ flowchart LR
 
 ---
 
-## 3 Create a React App (if you don't have one)
+## 3 First, Install Node.js and npm
+
+To create and run a React app on your own machine you need **Node.js** (the JavaScript runtime). Installing Node.js automatically installs **npm** (Node Package Manager) with it - they come together.
+
+> Small irony worth noticing: we install Node.js here only so we can *create* a sample app to containerize. Once the app is in a Docker image, nobody else needs Node.js installed - that is exactly the "works on my machine" problem Docker solves. This is the last time you install a language runtime by hand in this course.
+
+### Windows (recommended: winget)
+
+Windows 10/11 ships with `winget`, the built-in package manager. Open **PowerShell** and run:
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+Close and reopen PowerShell, then verify:
+```powershell
+node --version    # e.g. v20.x.x
+npm --version     # e.g. 10.x.x
+```
+
+**Alternative for Windows (manual installer):** download the **LTS** installer from [nodejs.org](https://nodejs.org/), run the `.msi`, keep clicking Next (accept the defaults), then reopen your terminal and run the same two verify commands.
+
+> Always pick **LTS** (Long-Term Support), not "Current." LTS is the stable version companies actually use.
+
+### macOS
+```bash
+brew install node        # using Homebrew
+node --version
+npm --version
+```
+
+### Linux (Ubuntu/Debian)
+```bash
+# NodeSource gives you a current LTS (the distro's default is often old)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version
+npm --version
+```
+
+### The professional way: nvm (Node Version Manager)
+
+On real teams, different projects need different Node versions. **nvm** lets you install and switch between versions instantly, instead of reinstalling Node each time.
+
+- **Windows:** install [nvm-windows](https://github.com/coreybutler/nvm-windows/releases) (`nvm-setup.exe`), then:
+  ```powershell
+  nvm install lts
+  nvm use lts
+  ```
+- **macOS/Linux:** install [nvm](https://github.com/nvm-sh/nvm), then:
+  ```bash
+  nvm install --lts
+  nvm use --lts
+  ```
+
+> This is optional for today, but it is how professionals manage Node - worth knowing when an interviewer asks "how do you handle different Node versions across projects?"
+
+---
+
+## 4 Create a React App (if you don't have one)
+
+Now that Node.js and npm are installed, create a starter app:
 ```bash
 npx create-react-app my-react-app
 cd my-react-app
 npm start          # runs at http://localhost:3000 (traditional way)
 # press CTRL + C to stop
 ```
+`npx` is a tool that comes with npm; it runs a package (here, `create-react-app`) without permanently installing it.
+
+> **Heads-up (modern alternative):** `create-react-app` is now considered outdated and is no longer actively maintained. The current standard is **Vite**, which is faster:
+> ```bash
+> npm create vite@latest my-react-app -- --template react
+> cd my-react-app
+> npm install
+> npm run dev        # Vite dev server (default http://localhost:5173)
+> ```
+> Either works for this Docker lesson. If you use Vite, remember its build output goes to `dist/` (not `build/`) and its dev port is `5173` - adjust the `EXPOSE`/port numbers accordingly.
 
 ---
 
-## 4 Write the Dockerfile
+## 5 Write the Dockerfile
 
 Create a file named exactly `Dockerfile` (no extension) in the project root:
 
@@ -104,7 +173,7 @@ CMD ["npm", "start"]
 
 ---
 
-## 5 Add a `.dockerignore` (do this!)
+## 6 Add a `.dockerignore` (do this!)
 
 Just like `.gitignore`, a **`.dockerignore`** keeps junk and secrets *out* of your image - making builds faster and smaller. Create `.dockerignore`:
 ```
@@ -119,7 +188,7 @@ Dockerfile
 
 ---
 
-## 6 Image Layers & Build Caching (the pro concept)
+## 7 Image Layers & Build Caching (the pro concept)
 
 ### Analogy
 An image is built in **stacked layers**, like sheets of a lasagna - **one layer per instruction**. Docker **caches** each layer. On the next build, if a layer's inputs haven't changed, Docker **reuses the cached layer instead of rebuilding it**.
@@ -134,14 +203,14 @@ flowchart TB
 ```
 
 **Why we `COPY package*.json` BEFORE `COPY . .`:**
-- If you only change your *source code* (not dependencies), layers 1 - 3 are **reused from cache**, so `npm install` is **skipped** → builds in seconds.
+- If you only change your *source code* (not dependencies), layers 1-3 are **reused from cache**, so `npm install` is **skipped** → builds in seconds.
 - If you copied everything first, *any* code change would invalidate the cache and re-run the slow `npm install` every time.
 
 > Inspect layers with: `docker history react-app`
 
 ---
 
-## 7 Build the Image
+## 8 Build the Image
 ```bash
 docker build -t react-app .
 ```
@@ -155,7 +224,7 @@ docker images          # see 'react-app' listed
 
 ---
 
-## 8 Run Your Container
+## 9 Run Your Container
 ```bash
 docker run -d -p 3000:3000 react-app
 ```
@@ -166,7 +235,7 @@ docker ps              # confirm it's running
 
 ---
 
-## 9 Push to Docker Hub (share your image)
+## 10 Push to Docker Hub (share your image)
 
 ### Analogy
 Docker Hub is like **GitHub, but for images**. You tag your image with your username, then push.
